@@ -2,7 +2,7 @@ package test
 
 import (
 	"fmt"
-	"log-listener/listener"
+	"github.com/taoey/go-log-listener/listener"
 )
 
 // 自定义Nginx实现类，能够解析Nginx日志
