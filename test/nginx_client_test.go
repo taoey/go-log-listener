@@ -21,7 +21,7 @@ func Test01(t *testing.T) {
 
 func Test02(t *testing.T) {
 	filePath := "E:\\projects\\go-mod\\log-listener\\go.sum"
-	logListener := NewNginxLogListener(filePath, 3)
+	logListener := listener.NewNginxLogListener(filePath, 3)
 
 	logListener.Run()
 

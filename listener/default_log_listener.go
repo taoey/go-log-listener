@@ -2,6 +2,7 @@ package listener
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -9,13 +10,29 @@ import (
 
 // 默认日志监听处理器
 type DefaultLogListener struct {
+	logChannel     chan string
+	storageChannel chan interface{}
+	watchChannel   chan int
+
 	RefreshTime int64
 	FilePath    string
 }
 
 // 构造函数
-func NewDefaultLogListener() *DefaultLogListener {
-	return &DefaultLogListener{}
+func NewDefaultLogListener(filePath string, refreshTime int64) *DefaultLogListener {
+	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15)
+}
+
+// 带参数的构造函数
+func NewDefaultLogListenerWithParams(filePath string, refreshTime int64, logChannelSize, storageChannelSize int) *DefaultLogListener {
+	return &DefaultLogListener{
+		logChannel:     make(chan string, logChannelSize),
+		storageChannel: make(chan interface{}, storageChannelSize),
+		watchChannel:   make(chan int),
+
+		RefreshTime: refreshTime,
+		FilePath:    filePath,
+	}
 }
 
 // 日志监听模块
@@ -25,20 +42,31 @@ func (this *DefaultLogListener) ReadFileLineByLine(filePath string, logChannel c
 		LOG.Warnf("ReadFileLinebyLine can't open file:%s", filePath)
 		return err
 	}
+	defer close(logChannel)
 	defer file.Close()
 
 	bufferRead := bufio.NewReader(file)
+
+Loop:
 	for {
-		line, err := bufferRead.ReadString('\n')
-		logChannel <- line
-		if err != nil {
-			if err == io.EOF {
-				time.Sleep(time.Second * time.Duration(this.RefreshTime)) // 读取日志刷新时间
-			} else {
-				LOG.Warningf("ReadFileLinebyLine read log error")
+		select {
+		case isOpen := <-this.watchChannel:
+			fmt.Println(isOpen)
+			break Loop
+		default:
+			line, err := bufferRead.ReadString('\n')
+			time.Sleep(time.Second)
+			logChannel <- line
+			if err != nil {
+				if err == io.EOF {
+					time.Sleep(time.Second * time.Duration(this.RefreshTime)) // 读取日志刷新时间
+				} else {
+					LOG.Warningf("ReadFileLinebyLine read log error")
+				}
 			}
 		}
 	}
+	return nil
 }
 
 // 日志分析模块:仅提供日志打印输出功能，具体功能需要覆盖该方法
@@ -57,14 +85,11 @@ func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, poo
 
 // 启动监听
 func (this *DefaultLogListener) Run() {
-	var logChannel = make(chan string, 15)
-	var storageChannel = make(chan interface{}, 15)
-
-	go this.ReadFileLineByLine(this.FilePath, logChannel)
-	go this.logHandler(logChannel, storageChannel)
+	go this.ReadFileLineByLine(this.FilePath, this.logChannel)
+	go this.logHandler(this.logChannel, this.storageChannel)
 }
 
 // 停止监听
 func (this *DefaultLogListener) Stop() {
-	// TODO
+	this.watchChannel <- 1
 }

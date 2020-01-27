@@ -1,21 +1,20 @@
-package test
+package listener
 
 import (
 	"fmt"
-	"github.com/taoey/go-log-listener/listener"
 )
 
 // 自定义Nginx实现类，能够解析Nginx日志
 // 需要重写三个接口
 
 type NginxLogListener struct {
-	listener.DefaultLogListener
+	DefaultLogListener
 }
 
 // 构造函数
 func NewNginxLogListener(filePath string, refreshTime int64) *NginxLogListener {
 	return &NginxLogListener{
-		listener.DefaultLogListener{
+		DefaultLogListener{
 			FilePath:    filePath,
 			RefreshTime: refreshTime,
 		},
