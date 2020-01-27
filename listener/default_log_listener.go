@@ -2,7 +2,6 @@ package listener
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"time"
@@ -50,12 +49,10 @@ func (this *DefaultLogListener) ReadFileLineByLine(filePath string, logChannel c
 Loop:
 	for {
 		select {
-		case isOpen := <-this.watchChannel:
-			fmt.Println(isOpen)
+		case <-this.watchChannel:
 			break Loop
 		default:
 			line, err := bufferRead.ReadString('\n')
-			time.Sleep(time.Second)
 			logChannel <- line
 			if err != nil {
 				if err == io.EOF {
