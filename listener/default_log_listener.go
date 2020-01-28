@@ -12,6 +12,8 @@ type DefaultLogListener struct {
 	logChannel     chan string
 	storageChannel chan interface{}
 	watchChannel   chan int
+	startLineNum   int //从特定的行开始监听
+	//currentLineNum int //当前遍历的行，goroutine-ReadFileLineByLine进行维护
 
 	RefreshTime int64
 	FilePath    string
@@ -25,6 +27,7 @@ func NewDefaultLogListener(filePath string, refreshTime int64) *DefaultLogListen
 // 带参数的构造函数
 func NewDefaultLogListenerWithParams(filePath string, refreshTime int64, logChannelSize, storageChannelSize int) *DefaultLogListener {
 	return &DefaultLogListener{
+		logChannelSize: logChannelSize,
 		logChannel:     make(chan string, logChannelSize),
 		storageChannel: make(chan interface{}, storageChannelSize),
 		watchChannel:   make(chan int),
@@ -50,6 +53,7 @@ Loop:
 	for {
 		select {
 		case <-this.watchChannel:
+			// 读取当前行号并记录
 			break Loop
 		default:
 			line, err := bufferRead.ReadString('\n')
@@ -68,6 +72,7 @@ Loop:
 
 // 日志分析模块:仅提供日志打印输出功能，具体功能需要覆盖该方法
 func (this *DefaultLogListener) logHandler(logChannel chan string, storageChannel chan interface{}) {
+	// TODO 添加LogChannel的关闭状态的监听：logChannel关闭 && logChannel中没有元素时，关闭storageChannel并退出goroutine
 	for logStr := range logChannel {
 		if logStr != "" {
 			LOG.Info("日志处理", logStr)
@@ -83,10 +88,19 @@ func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, poo
 // 启动监听
 func (this *DefaultLogListener) Run() {
 	go this.ReadFileLineByLine(this.FilePath, this.logChannel)
-	go this.logHandler(this.logChannel, this.storageChannel)
+	for i := 0; i < 15; i++ {
+		go this.logHandler(this.logChannel, this.storageChannel)
+	}
 }
 
 // 停止监听
 func (this *DefaultLogListener) Stop() {
 	this.watchChannel <- 1
+}
+
+// 重新启动监听
+func (this *DefaultLogListener) Restart() {
+	this.Stop()
+	this.logChannel = make(chan string, this.logChannelSize)
+	this.Run()
 }
