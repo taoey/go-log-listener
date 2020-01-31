@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"sync"
 	"time"
 )
 
 // 默认日志监听处理器
 type DefaultLogListener struct {
+	once           sync.Once
 	logChannel     chan string
+	logChannelSize int
 	storageChannel chan interface{}
 	watchChannel   chan int
 	startLineNum   int //从特定的行开始监听
@@ -72,17 +75,31 @@ Loop:
 
 // 日志分析模块:仅提供日志打印输出功能，具体功能需要覆盖该方法
 func (this *DefaultLogListener) logHandler(logChannel chan string, storageChannel chan interface{}) {
-	// TODO 添加LogChannel的关闭状态的监听：logChannel关闭 && logChannel中没有元素时，关闭storageChannel并退出goroutine
+	// 使用Once 防止 多个goroutine关闭同一个channel
+	defer func() {
+		this.once.Do(func() {
+			LOG.Info("handle data finished!")
+			close(storageChannel)
+		})
+	}()
+	// logChannel 关闭后待logChannel缓冲区为空时，自动跳出该方法
 	for logStr := range logChannel {
 		if logStr != "" {
-			LOG.Info("日志处理", logStr)
+			LOG.Info("日志处理:", logStr)
+			storageChannel <- logStr
 		}
 	}
 }
 
 // 日志写入模块
 func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, pool *interface{}) {
-	// dosomething
+	// logChannel 关闭后待logChannel缓冲区为空时，自动跳出该方法
+	for logStr := range storageChannel {
+		if logStr != "" {
+			LOG.Info("日志存储:", logStr)
+		}
+	}
+	LOG.Info("storage data finished!")
 }
 
 // 启动监听
@@ -91,6 +108,7 @@ func (this *DefaultLogListener) Run() {
 	for i := 0; i < 15; i++ {
 		go this.logHandler(this.logChannel, this.storageChannel)
 	}
+	go this.dataStorage(this.storageChannel, nil)
 }
 
 // 停止监听

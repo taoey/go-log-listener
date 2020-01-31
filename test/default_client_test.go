@@ -1,7 +1,9 @@
 package test
 
 import (
+	"fmt"
 	"github.com/taoey/go-log-listener/listener"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -13,7 +15,10 @@ func TestDefaultLogListener(t *testing.T) {
 	logListener.Run()
 
 	time.Sleep(time.Second * 8)
-
+	fmt.Println("runtime goroutine number:", runtime.NumGoroutine())
 	logListener.Stop()
+	fmt.Println("the logListener has been closed")
+	time.Sleep(time.Second * 5)
+	fmt.Println("runtime goroutine number:", runtime.NumGoroutine())
 	time.Sleep(time.Hour * 1)
 }
