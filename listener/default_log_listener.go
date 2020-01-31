@@ -18,6 +18,7 @@ type DefaultLogListener struct {
 	startLineNum   int //从特定的行开始监听
 	//currentLineNum int //当前遍历的行，goroutine-ReadFileLineByLine进行维护
 
+	logHandlerNum     int
 	varLogHandler     func(string) interface{} // 日志处理回调
 	varStorageHandler func(interface{})        // 存储回调
 
@@ -27,11 +28,12 @@ type DefaultLogListener struct {
 
 // 构造函数
 func NewDefaultLogListener(filePath string, refreshTime int64) *DefaultLogListener {
-	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15)
+	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15, 15)
 }
 
 // 带参数的构造函数
-func NewDefaultLogListenerWithParams(filePath string, refreshTime int64, logChannelSize, storageChannelSize int) *DefaultLogListener {
+func NewDefaultLogListenerWithParams(filePath string, refreshTime int64,
+	logChannelSize int, logHandlerNum int, storageChannelSize int) *DefaultLogListener {
 	return &DefaultLogListener{
 		logChannelSize: logChannelSize,
 		logChannel:     make(chan string, logChannelSize),
@@ -109,7 +111,7 @@ func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, f f
 // 启动监听
 func (this *DefaultLogListener) Run() {
 	go this.ReadFileLineByLine(this.FilePath, this.logChannel)
-	for i := 0; i < 15; i++ {
+	for i := 0; i < this.logHandlerNum; i++ {
 		go this.logHandler(this.logChannel, this.storageChannel, this.varLogHandler)
 	}
 	go this.dataStorage(this.storageChannel, this.varStorageHandler)
