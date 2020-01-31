@@ -28,8 +28,8 @@ type DefaultLogListener struct {
 }
 
 // 构造函数
-func NewDefaultLogListener(filePath string, refreshTime int64) *DefaultLogListener {
-	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15, 15, 1)
+func NewDefaultLogListener(filePath string) *DefaultLogListener {
+	return NewDefaultLogListenerWithParams(filePath, 3, 128, 128, 256, 1)
 }
 
 // 带参数的构造函数
