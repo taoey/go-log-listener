@@ -18,6 +18,9 @@ type DefaultLogListener struct {
 	startLineNum   int //从特定的行开始监听
 	//currentLineNum int //当前遍历的行，goroutine-ReadFileLineByLine进行维护
 
+	varLogHandler     func(string) interface{} // 日志处理回调
+	varStorageHandler func(interface{})        // 存储回调
+
 	RefreshTime int64
 	FilePath    string
 }
@@ -74,7 +77,8 @@ Loop:
 }
 
 // 日志分析模块:仅提供日志打印输出功能，具体功能需要覆盖该方法
-func (this *DefaultLogListener) logHandler(logChannel chan string, storageChannel chan interface{}) {
+func (this *DefaultLogListener) logHandler(
+	logChannel chan string, storageChannel chan interface{}, f func(string) interface{}) {
 	// 使用Once 防止 多个goroutine关闭同一个channel
 	defer func() {
 		this.once.Do(func() {
@@ -85,18 +89,18 @@ func (this *DefaultLogListener) logHandler(logChannel chan string, storageChanne
 	// logChannel 关闭后待logChannel缓冲区为空时，自动跳出该方法
 	for logStr := range logChannel {
 		if logStr != "" {
-			LOG.Info("日志处理:", logStr)
-			storageChannel <- logStr
+			logObject := f(logStr)
+			storageChannel <- logObject
 		}
 	}
 }
 
 // 日志写入模块
-func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, pool *interface{}) {
+func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, f func(interface{})) {
 	// logChannel 关闭后待logChannel缓冲区为空时，自动跳出该方法
-	for logStr := range storageChannel {
-		if logStr != "" {
-			LOG.Info("日志存储:", logStr)
+	for logObj := range storageChannel {
+		if logObj != nil {
+			f(logObj)
 		}
 	}
 	LOG.Info("storage data finished!")
@@ -106,9 +110,9 @@ func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, poo
 func (this *DefaultLogListener) Run() {
 	go this.ReadFileLineByLine(this.FilePath, this.logChannel)
 	for i := 0; i < 15; i++ {
-		go this.logHandler(this.logChannel, this.storageChannel)
+		go this.logHandler(this.logChannel, this.storageChannel, this.varLogHandler)
 	}
-	go this.dataStorage(this.storageChannel, nil)
+	go this.dataStorage(this.storageChannel, this.varStorageHandler)
 }
 
 // 停止监听
@@ -121,4 +125,10 @@ func (this *DefaultLogListener) Restart() {
 	this.Stop()
 	this.logChannel = make(chan string, this.logChannelSize)
 	this.Run()
+}
+
+// 设置处理方法
+func (this *DefaultLogListener) SetHandler(logHandler func(string) interface{}, storageHandler func(interface{})) {
+	this.varLogHandler = logHandler
+	this.varStorageHandler = storageHandler
 }

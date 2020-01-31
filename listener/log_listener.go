@@ -4,9 +4,9 @@ type ILogListener interface {
 	// 将日志文件读入到logChannel管道
 	ReadFileLineByLine(filePath string, logChannel chan string) error
 	// 日志处理
-	logHandler(logChannel chan string, storageChannel chan interface{})
+	logHandler(logChannel chan string, storageChannel chan interface{}, f func(string) interface{})
 	// 数据存储
-	dataStorage(storageChannel chan interface{}, pool *interface{})
+	dataStorage(storageChannel chan interface{}, f func(interface{}))
 	// 启动
 	Run()
 	//停止
