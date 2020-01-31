@@ -18,9 +18,10 @@ type DefaultLogListener struct {
 	startLineNum   int //从特定的行开始监听
 	//currentLineNum int //当前遍历的行，goroutine-ReadFileLineByLine进行维护
 
-	logHandlerNum     int
-	varLogHandler     func(string) interface{} // 日志处理回调
-	varStorageHandler func(interface{})        // 存储回调
+	logHandlerNum        int
+	logStarageHandlerNum int
+	varLogHandler        func(string) interface{} // 日志处理回调
+	varStorageHandler    func(interface{})        // 存储回调
 
 	RefreshTime int64
 	FilePath    string
@@ -28,17 +29,19 @@ type DefaultLogListener struct {
 
 // 构造函数
 func NewDefaultLogListener(filePath string, refreshTime int64) *DefaultLogListener {
-	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15, 15)
+	return NewDefaultLogListenerWithParams(filePath, refreshTime, 15, 15, 15, 1)
 }
 
 // 带参数的构造函数
 func NewDefaultLogListenerWithParams(filePath string, refreshTime int64,
-	logChannelSize int, logHandlerNum int, storageChannelSize int) *DefaultLogListener {
+	logChannelSize int, logHandlerNum int, storageChannelSize int, logStarageHandlerNum int) *DefaultLogListener {
 	return &DefaultLogListener{
-		logChannelSize: logChannelSize,
-		logChannel:     make(chan string, logChannelSize),
-		storageChannel: make(chan interface{}, storageChannelSize),
-		watchChannel:   make(chan int),
+		logChannelSize:       logChannelSize,
+		logChannel:           make(chan string, logChannelSize),
+		storageChannel:       make(chan interface{}, storageChannelSize),
+		watchChannel:         make(chan int),
+		logHandlerNum:        logHandlerNum,
+		logStarageHandlerNum: logStarageHandlerNum,
 
 		RefreshTime: refreshTime,
 		FilePath:    filePath,
@@ -114,7 +117,9 @@ func (this *DefaultLogListener) Run() {
 	for i := 0; i < this.logHandlerNum; i++ {
 		go this.logHandler(this.logChannel, this.storageChannel, this.varLogHandler)
 	}
-	go this.dataStorage(this.storageChannel, this.varStorageHandler)
+	for i := 0; i < this.logStarageHandlerNum; i++ {
+		go this.dataStorage(this.storageChannel, this.varStorageHandler)
+	}
 }
 
 // 停止监听
