@@ -16,3 +16,10 @@
 ## 三、实例：Nginx日志监听
 
 // TODO 
+
+
+## 四、实现原理
+```
+log_format  main  '{"addr":"$remote_addr","time":"$time_local","req":"$request"}';
+access_log  logs/access.log  main;
+```

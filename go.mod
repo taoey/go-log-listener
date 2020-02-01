@@ -2,4 +2,7 @@ module github.com/taoey/go-log-listener
 
 go 1.12
 
-require github.com/sirupsen/logrus v1.4.2
+require (
+	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/sirupsen/logrus v1.4.2
+)
