@@ -2,11 +2,13 @@ package example
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"github.com/taoey/go-log-listener/listener"
+	"math/rand"
 	"os"
-	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,27 +52,41 @@ func init() {
 }
 
 type NginxLog struct {
-	time string
-	ip   string
-}
-
-type StorageBlock struct {
-	counterType  string
-	storageModel string
-	nginxLog     NginxLog
+	Addr string
+	Time string
+	Req  string
 }
 
 func logHandler(logStr string) interface{} {
-	fmt.Print("日志处理：", logStr)
-	return NginxLog{}
+	log := NginxLog{}
+	json.Unmarshal([]byte(logStr), &log)
+	log.Time = log.Time[0:11]
+	log.Req = strings.Split(log.Req, " ")[1]
+	fmt.Println("处理：", log)
+	return log
 }
 
-func logStatageHandler(log interface{}) {
-	//redisPool.Cmd("set",log.url)
-	//fmt.Println(log)
+func logStatageHandler(logObj interface{}) {
+	log := (logObj).(NginxLog)
+	client := redisClient.Get()
+	defer client.Close()
+	// PV 统计
+	client.Send("ZINCRBY", fmt.Sprintf("PV:%s", log.Time), 1, log.Req)
+	// UV 统计
+	client.Send("PFADD", fmt.Sprintf("UV:%s", log.Time), log.Addr)
+	// 使用redigo的pipeline方式进行存储
+	client.Flush()
+	fmt.Println("存储：", log)
+
+}
+
+func randInt(min int, max int) int {
+	//rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return min + rand.Intn(max-min)
 }
 
 // 模拟Nginx日志产生
+// {"addr":"127.0.0.1","time":"01/Feb/2020:16:57:03 +0800","req":"GET /favicon.ico HTTP/1.1"}
 func nginxLogCreater() {
 
 	if fileObj, err := os.OpenFile(FILE_PATH, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644); err == nil {
@@ -78,8 +94,12 @@ func nginxLogCreater() {
 		// 使用WriteString方法,写入字符串并返回写入字节数和错误信息
 		writeObj := bufio.NewWriterSize(fileObj, 4096)
 		for i := 0; i < 100; i++ {
-			content := strconv.Itoa(i) + "\n"
-			fmt.Print("日志写入", content)
+			addr := fmt.Sprintf("192.168.%d.%d", randInt(2, 66), randInt(2, 88))
+			timeLocal := fmt.Sprintf("%02d/Feb/2020:16:57:03 +0800", randInt(1, 10))
+			req := fmt.Sprintf("GET /%03d.png HTTP/1.1", randInt(1, 100))
+			content := fmt.Sprintf("{\"addr\":\"%s\",\"time\":\"%s\",\"req\":\"%s\"}\n", addr, timeLocal, req)
+			fmt.Print("写入:", content)
+
 			if _, err := writeObj.WriteString(content); err != nil {
 				fmt.Println("write string wrong:", i, err)
 			}
