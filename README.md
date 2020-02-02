@@ -64,5 +64,10 @@ time.Sleep(time.Minute * 3)
 
 ## 三、实现原理
 
+<img align=center src="README.assets/go-log-listener-data-flow.png" alt="go-log-listener-data-flow" style="zoom:100%;" />
 
-![go-log-listener-data-flow](README.assets/go-log-listener-data-flow.png)
+---
+
+有问题可以提Issue或者关注我的公众号联系我：
+
+<img align=center src="README.assets/wx.jpg" alt="wx" style="zoom: 50%;" />
