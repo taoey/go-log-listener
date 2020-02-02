@@ -10,8 +10,8 @@ import (
 
 // 测试默认日志监听器
 func TestDefaultLogListener(t *testing.T) {
-	filePath := "E:\\projects\\go-mod\\log-listener\\go.sum"
-	logListener := listener.NewDefaultLogListener(filePath, 3)
+	filePath := "./../go.sum"
+	logListener := listener.NewDefaultLogListener(filePath)
 
 	varLogHandler := func(logStr string) interface{} {
 		fmt.Println("日志处理：", logStr)
