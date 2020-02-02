@@ -114,12 +114,17 @@ func (this *DefaultLogListener) dataStorage(storageChannel chan interface{}, f f
 // 启动监听
 func (this *DefaultLogListener) Run() {
 	go this.ReadFileLineByLine(this.FilePath, this.logChannel)
-	for i := 0; i < this.logHandlerNum; i++ {
-		go this.logHandler(this.logChannel, this.storageChannel, this.varLogHandler)
+	if this.varLogHandler != nil {
+		for i := 0; i < this.logHandlerNum; i++ {
+			go this.logHandler(this.logChannel, this.storageChannel, this.varLogHandler)
+		}
 	}
-	for i := 0; i < this.logStarageHandlerNum; i++ {
-		go this.dataStorage(this.storageChannel, this.varStorageHandler)
+	if this.varStorageHandler != nil {
+		for i := 0; i < this.logStarageHandlerNum; i++ {
+			go this.dataStorage(this.storageChannel, this.varStorageHandler)
+		}
 	}
+
 }
 
 // 停止监听
