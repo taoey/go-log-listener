@@ -3,23 +3,66 @@
 
 ## 一、功能介绍
 
-// TODO
+为了更加便捷的实现日志文件监听存储功能。
 
-
+- [x] 自定义并发数量
+- [x] 自定义日志处理
+- [ ] 自定义文件监听起始行数
+- [x] 终止监听
+- [ ] 重新监听
+- [x] Nginx监听实例：模拟Nginx日志生成，并结合Redis实现PV，UV统计存储
 
 ## 二、快速开始
 
-// TODO
+### 安装
 
-
-
-## 三、实例：Nginx日志监听
-
-// TODO 
-
-
-## 四、实现原理
+```bash
+go get github.com/taoey/go-log-listener
 ```
-log_format  main  '{"addr":"$remote_addr","time":"$time_local","req":"$request"}';
-access_log  logs/access.log  main;
+
+### 使用
+
+如下实例代码模拟了日志文件处理流程（可结合[example/nginx_log_listener_test.go](example/nginx_log_listener_test.go)理解）
+
+`access.log`为同级目录下的日志文件，其内容为：
+
 ```
+{"addr":"192.168.35.87","time":"03/Feb/2020:16:57:03 +0800","req":"GET /048.png HTTP/1.1"}
+{"addr":"192.168.3.40","time":"08/Feb/2020:16:57:03 +0800","req":"GET /018.png HTTP/1.1"}
+{"addr":"192.168.10.76","time":"06/Feb/2020:16:57:03 +0800","req":"GET /089.png HTTP/1.1"}
+```
+
+代码示例：
+
+```go
+logListener := listener.NewDefaultLogListener("access.log")
+logHandler:= func(str string) interface{} {
+	fmt.Print("日志解析：",str)
+	return str
+}
+logStorageHandler := func(log interface{}) {
+	fmt.Print("日志存储：",log)
+}
+logListener.SetHandler(logHandler,logStorageHandler)
+logListener.Run()
+
+time.Sleep(time.Minute * 3)
+```
+
+控制台打印：
+
+```
+日志解析：{"addr":"192.168.3.40","time":"08/Feb/2020:16:57:03 +0800","req":"GET /018.png HTTP/1.1"}
+日志解析：{"addr":"192.168.10.76","time":"06/Feb/2020:16:57:03 +0800","req":"GET /089.png HTTP/1.1"}
+日志存储：{"addr":"192.168.3.40","time":"08/Feb/2020:16:57:03 +0800","req":"GET /018.png HTTP/1.1"}
+日志存储：{"addr":"192.168.10.76","time":"06/Feb/2020:16:57:03 +0800","req":"GET /089.png HTTP/1.1"}
+日志解析：{"addr":"192.168.35.87","time":"03/Feb/2020:16:57:03 +0800","req":"GET /048.png HTTP/1.1"}
+日志存储：{"addr":"192.168.35.87","time":"03/Feb/2020:16:57:03 +0800","req":"GET /048.png HTTP/1.1"}
+
+```
+
+
+## 三、实现原理
+
+
+![go-log-listener-data-flow](README.assets/go-log-listener-data-flow.png)
