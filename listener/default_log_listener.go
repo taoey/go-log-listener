@@ -134,9 +134,9 @@ func (this *DefaultLogListener) Stop() {
 
 // 重新启动监听
 func (this *DefaultLogListener) Restart() {
-	this.Stop()
-	this.logChannel = make(chan string, this.logChannelSize)
-	this.Run()
+	//this.Stop()
+	//this.logChannel = make(chan string, this.logChannelSize)
+	//this.Run()
 }
 
 // 设置处理方法
